@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -30,7 +31,16 @@ var runCmd = &cobra.Command{
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Incoming request", r.URL.Path)
 			filepath := fmt.Sprintf("%s/%s/%s", currdir, path, r.URL.Path)
-			data, _ := os.ReadFile(filepath)
+			data, err := os.ReadFile(filepath)
+			if err != nil {
+				if strings.Contains(err.Error(), "no such file or directory") {
+					w.WriteHeader(404)
+					fmt.Fprintf(w, "%s", "Not found")
+					return
+				} else {
+					panic(err)
+				}
+			}
 			fmt.Fprintf(w, "%s", string(data))
 		})
 		s := &http.Server{
