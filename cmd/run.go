@@ -16,47 +16,25 @@ var port int
 
 var path string
 
+var currdir string
+
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Starts the HTTP server",
 	Long:  `Starts the HTTP Server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("starting server port:", 8080)
+		fmt.Println("starting server port:", port)
+		fmt.Println("serving directory:", path)
 		mux := http.NewServeMux()
-		mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-			_, err := os.Executable()
-			if err != nil {
-				panic(err)
-			}
-			dir, err := os.Getwd()
-			if err != nil {
-				return
-			}
-			fmt.Println(dir)
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Incoming request", r.URL.Path)
-			filepath := fmt.Sprintf("%s/%s/%s", dir, path, "test.html")
-			fmt.Println("Path", filepath)
+			filepath := fmt.Sprintf("%s/%s/%s", currdir, path, r.URL.Path)
 			data, _ := os.ReadFile(filepath)
-			fmt.Println("File read", r.URL.Path)
-			// cwd, _ := os.Getwd()
-			// fmt.Println(string(err.Error()))
-			fmt.Println(string(data))
-			// fmt.Println(cwd)
-			fmt.Fprintf(w, "%s", string(data))
-		})
-		mux.HandleFunc("/s.css", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("Incoming request", r.URL.Path)
-			data, _ := os.ReadFile("./testroot/s.css")
-			fmt.Println("File read", r.URL.Path)
-			// cwd, _ := os.Getwd()
-			// fmt.Println(string(err.Error()))
-			fmt.Println(string(data))
-			// fmt.Println(cwd)
 			fmt.Fprintf(w, "%s", string(data))
 		})
 		s := &http.Server{
-			Addr:           ":8080",
+			Addr:           fmt.Sprintf(":%d", port),
 			Handler:        mux,
 			ReadTimeout:    10 * time.Second,
 			WriteTimeout:   10 * time.Second,
@@ -68,6 +46,12 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
+	var err error
+	currdir, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("CWD:", currdir)
 	rootCmd.AddCommand(runCmd)
 
 	runCmd.Flags().IntVar(&port, "port", 3000, "Port")
