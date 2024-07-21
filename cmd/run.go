@@ -19,20 +19,32 @@ var path string
 
 var currdir string
 
+var cache *Cache
+
 func handleFunc(w http.ResponseWriter, r *http.Request) {
 	filepath := fmt.Sprintf("%s/%s/%s", currdir, path, r.URL.Path)
-	data, err := os.ReadFile(filepath)
-	if err != nil {
-		if strings.Contains(err.Error(), "no such file or directory") {
-			w.WriteHeader(404)
-			fmt.Fprintf(w, "%s", "Not found")
-			return
-		} else {
-			panic(err)
+	data, ok := cache.fetch(filepath)
+	fmt.Println(ok)
+	if !ok {
+		content, err := os.ReadFile(filepath)
+		if err != nil {
+			if strings.Contains(err.Error(), "no such file or directory") {
+				w.WriteHeader(404)
+				fmt.Fprintf(w, "%s", "Not found")
+				return
+			} else {
+				panic(err)
+			}
 		}
+		data = string(content)
+		cache.persist(filepath, data)
+		fmt.Println("persist in cache")
+	} else {
+		fmt.Println("fetch from cache")
 	}
+
 	fmt.Println("sending output")
-	fmt.Fprintf(w, "%s", string(data))
+	fmt.Fprintf(w, "%s", data)
 }
 
 // runCmd represents the run command
@@ -43,6 +55,7 @@ var runCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("starting server port:", port)
 		fmt.Println("serving directory:", path)
+		cache = NewCache()
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", handleFunc)
 		s := &http.Server{
