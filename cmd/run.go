@@ -19,6 +19,22 @@ var path string
 
 var currdir string
 
+func handleFunc(w http.ResponseWriter, r *http.Request) {
+	filepath := fmt.Sprintf("%s/%s/%s", currdir, path, r.URL.Path)
+	data, err := os.ReadFile(filepath)
+	if err != nil {
+		if strings.Contains(err.Error(), "no such file or directory") {
+			w.WriteHeader(404)
+			fmt.Fprintf(w, "%s", "Not found")
+			return
+		} else {
+			panic(err)
+		}
+	}
+	fmt.Println("sending output")
+	fmt.Fprintf(w, "%s", string(data))
+}
+
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -28,21 +44,7 @@ var runCmd = &cobra.Command{
 		fmt.Println("starting server port:", port)
 		fmt.Println("serving directory:", path)
 		mux := http.NewServeMux()
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("Incoming request", r.URL.Path)
-			filepath := fmt.Sprintf("%s/%s/%s", currdir, path, r.URL.Path)
-			data, err := os.ReadFile(filepath)
-			if err != nil {
-				if strings.Contains(err.Error(), "no such file or directory") {
-					w.WriteHeader(404)
-					fmt.Fprintf(w, "%s", "Not found")
-					return
-				} else {
-					panic(err)
-				}
-			}
-			fmt.Fprintf(w, "%s", string(data))
-		})
+		mux.HandleFunc("/", handleFunc)
 		s := &http.Server{
 			Addr:           fmt.Sprintf(":%d", port),
 			Handler:        mux,
