@@ -22,7 +22,13 @@ var currdir string
 var cache *Cache
 
 func handleFunc(w http.ResponseWriter, r *http.Request) {
-	filepath := fmt.Sprintf("%s/%s/%s", currdir, path, r.URL.Path)
+	var filepath string
+	switch {
+	case strings.HasPrefix(path, "/"):
+		filepath = fmt.Sprintf("%s/%s", path, r.URL.Path)
+	default:
+		filepath = fmt.Sprintf("%s/%s/%s", currdir, path, r.URL.Path)
+	}
 	data, ok := cache.fetch(filepath)
 	if !ok {
 		content, err := os.ReadFile(filepath)
