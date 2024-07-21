@@ -24,7 +24,6 @@ var cache *Cache
 func handleFunc(w http.ResponseWriter, r *http.Request) {
 	filepath := fmt.Sprintf("%s/%s/%s", currdir, path, r.URL.Path)
 	data, ok := cache.fetch(filepath)
-	fmt.Println(ok)
 	if !ok {
 		content, err := os.ReadFile(filepath)
 		if err != nil {
@@ -43,7 +42,16 @@ func handleFunc(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("fetch from cache")
 	}
 
-	fmt.Println("sending output")
+	switch {
+	case strings.HasSuffix(filepath, "html"):
+		w.Header().Add("Content-Type", "text/html")
+	case strings.HasSuffix(filepath, "css"):
+		w.Header().Add("Content-Type", "text/css")
+	case strings.HasSuffix(filepath, "js"):
+		w.Header().Add("Content-Type", "text/javascript")
+	default:
+		w.Header().Add("Content-Type", "text/plain")
+	}
 	fmt.Fprintf(w, "%s", data)
 }
 
